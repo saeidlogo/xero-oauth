@@ -1,0 +1,33 @@
+{
+    "name": "moontius/xero-oauth",
+    "description": "Xero Oauth Service Provider for Laravel 5",
+    "keywords": ["laravel", "laravel 5", "xero"],
+    "license": "MIT",
+    "version":"1.1.0",
+    "authors": [
+        {
+            "name": "Saeidlogo",
+            "email": "saeid.kh@basketasia.com"
+        }
+    ],
+    "require": {
+        "php": ">=7",
+        "illuminate/support": "~5.5",
+        "illuminate/http": "~5.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Moontius\\XeroOAuth\\": "src"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Moontius\\XeroOAuth\\XeroOAuthServiceProvider"
+            ],
+            "aliases": {
+                "XeroOAuth": "Moontius\\XeroOAuth\\Facades"
+            }
+        }
+    }
+}
