@@ -9,7 +9,7 @@
 namespace Moontius\XeroOAuth;
 
 use Moontius\XeroOAuth\Lib\XeroOAuth;
-use Moontius\XeroOAuth\XeroException;
+use Moontius\XeroOAuth\Exceptions\XeroException;
 
 /**
  * Description of OAuthHelper
@@ -80,7 +80,7 @@ class OAuthHelper {
         return $authurl;
     }
 
-    function callback($params): string {
+    function callback(&$params): string {
         $oauth = $this->xero_session_get('oauth');
         $this->xeroOAuth->config ['access_token'] = $oauth['oauth_token'];
         $this->xeroOAuth->config ['access_token_secret'] = $oauth['oauth_token_secret'];
@@ -101,6 +101,7 @@ class OAuthHelper {
                 return false;
             }
             $this->xero_session_destroy('oauth');
+            $params['redirect'] = true;
             return 'success';
         }
 
@@ -137,10 +138,11 @@ class OAuthHelper {
                 //if $json is not array maybe there is a error
                 if (!is_array($json)) {
                     //convert query string to json format
-                    $error = $oauth->query_string_to_json($json);
+                    $error = $this->query_string_to_json($json);
                     if (isset($error['oauth_problem'])) {
                         switch ($error['oauth_problem']) {
                             case 'token_expired'://if xero token is expired we need to get fresh token and client should be redirect to auth page
+                                $this->xero_session_destroy('oauth_token');
                                 throw new XeroException('expired token xero account', 501);
                             default;
                                 throw new XeroException($error['oauth_problem'], 501);
@@ -176,9 +178,34 @@ class OAuthHelper {
                 $accounts = $this->xeroOAuth->parseResponse($this->xeroOAuth->response['response'], $this->xeroOAuth->response['format']);
                 return $accounts->Accounts;
             }
-            return $this->xeroOAuth->response['response'];
+            $json = $this->xeroOAuth->response['response'];
+            if (!is_null($json)) {
+                //if $json is not array maybe there is a error
+                if (!is_array($json)) {
+                    //convert query string to json format
+                    $error = $this->query_string_to_json($json);
+                    if (isset($error['oauth_problem'])) {
+                        switch ($error['oauth_problem']) {
+                            case 'token_expired'://if xero token is expired we need to get fresh token and client should be redirect to auth page
+                                $this->xero_session_destroy('oauth_token');
+                                throw new XeroException('expired token xero account', 501);
+                            default;
+                                throw new XeroException($error['oauth_problem'], 501);
+                        }
+                    }
+                    throw new XeroException($error, 501);
+                }
+                if (isset($json['Organisations'])) {
+                    return $json['Organisations'];
+                }
+                throw new XeroException('invalid json file', 501);
+            }
         }
         return null;
+    }
+
+    public function xero_session_has($key) {
+        return isset($_SESSION['XERO'][$key]);
     }
 
     public function xero_session_get($key) {
